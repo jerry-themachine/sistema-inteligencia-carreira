@@ -1,0 +1,9 @@
+{
+"workflow": "Radar de Vagas - Coleta Mult Fonte",
+"status": "Homologado",
+"version": "v1",
+"sprint": "SP-014",
+"description": "Workflow principal do SIC responsável pela coleta, normalização, score e persistência das vagas.",
+"owner": "Jerry William do Nascimento",
+"implementation": "Jarvis"
+}
