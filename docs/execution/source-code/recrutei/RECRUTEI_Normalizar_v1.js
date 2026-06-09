@@ -1,34 +1,31 @@
-/**
+return items.map(item => {
 
-* RECRUTEI_Normalizar_v1.js
-*
-* Projeto: SIC - Sistema de Inteligência de Carreira
-* Fonte: Recrutei
-*
-* Objetivo:
-* Normalizar os dados coletados da plataforma Recrutei para o modelo padrão do SIC.
-*
-* Campos Normalizados:
-* * empresa
-* * cargo
-* * descricao
-* * cidade
-* * pais
-* * modalidade
-* * salario
-* * link
-* * fonte
-* * data_coleta
-*
-* Status:
-* Em Evolução
-*
-* Sprint:
-* SP-014
-*
-* Responsável:
-* Jerry William do Nascimento
-*
-* Implementação:
-* Jarvis
-  */
+  const vaga = item.json;
+
+  return {
+    json: {
+
+      empresa: vaga.careerPageName || "",
+
+      cargo: vaga.name || "",
+
+      descricao: vaga.description || "",
+
+      cidade: vaga.city || "",
+
+      pais: vaga.country || "",
+
+      modalidade: vaga.workplaceType || "",
+
+      salario: "",
+
+      link: vaga.jobUrl || "",
+
+      fonte: "Gupy",
+
+      data_coleta: new Date().toLocaleString("pt-BR")
+
+    }
+  };
+
+});
