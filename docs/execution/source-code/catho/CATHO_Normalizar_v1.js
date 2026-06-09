@@ -1,34 +1,20 @@
-/**
+return items.map(item => {
+  const vaga = typeof item.json.data === "string"
+    ? JSON.parse(item.json.data)
+    : item.json.data;
 
-* CATHO_Normalizar_v1.js
-*
-* Projeto: SIC - Sistema de Inteligência de Carreira
-* Fonte: Catho
-*
-* Objetivo:
-* Normalizar os dados coletados da plataforma Catho para o modelo padrão do SIC.
-*
-* Campos Normalizados:
-* * empresa
-* * cargo
-* * descricao
-* * cidade
-* * pais
-* * modalidade
-* * salario
-* * link
-* * fonte
-* * data_coleta
-*
-* Status:
-* Em Evolução
-*
-* Sprint:
-* SP-014
-*
-* Responsável:
-* Jerry William do Nascimento
-*
-* Implementação:
-* Jarvis
-  */
+  return {
+    json: {
+      empresa: vaga.c?.cn || "",
+      cargo: vaga.o?.t || "",
+      descricao: vaga.o?.ld || "",
+      cidade: vaga.o?.cins?.[0] || "",
+      pais: vaga.o?.cntrs?.[0] || "Brasil",
+      modalidade: vaga.o?.lset || "",
+      salario: vaga.o?.sn || "",
+      link: vaga.o?.ur ? "https://www.catho.com.br" + vaga.o.ur : "",
+      fonte: "Catho",
+      data_coleta: new Date().toLocaleString("pt-BR")
+    }
+  };
+});
