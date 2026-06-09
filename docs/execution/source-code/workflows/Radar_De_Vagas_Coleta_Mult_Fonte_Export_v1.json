@@ -1,0 +1,970 @@
+{
+  "name": "Radar de Vagas - Coleta Mult Fonte",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://employability-portal.gupy.io/api/v1/jobs",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "jobName",
+              "value": "data"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "offset",
+              "value": "0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        304,
+        -80
+      ],
+      "id": "96f6062e-0183-493c-81d4-e274a2542382",
+      "name": "Coleta Gupy"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n\n  const vaga = item.json;\n\n  return {\n    json: {\n\n      empresa: vaga.careerPageName || \"\",\n\n      cargo: vaga.name || \"\",\n\n      descricao: vaga.description || \"\",\n\n      cidade: vaga.city || \"\",\n\n      pais: vaga.country || \"\",\n\n      modalidade: vaga.workplaceType || \"\",\n\n      salario: \"\",\n\n      link: vaga.jobUrl || \"\",\n\n      fonte: \"Gupy\",\n\n      data_coleta: new Date().toLocaleString(\"pt-BR\")\n\n    }\n  };\n\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -80
+      ],
+      "id": "eadbd6b9-0a79-41e2-a887-02529f471590",
+      "name": "Normalizar Gupy"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        -352
+      ],
+      "id": "a44a2cce-0870-4456-8a45-6899a1e5271b",
+      "name": "SIC - Trigger Manual"
+    },
+    {
+      "parameters": {
+        "url": "https://arbeitnow.com/api/job-board-api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "published"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        304,
+        64
+      ],
+      "id": "5e2df622-0b2c-4f3d-82d1-7eb273fdc6ce",
+      "name": "ARBEITNOW - Coleta API"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        512,
+        64
+      ],
+      "id": "c313f389-4e6d-47e3-ac2d-72c339de8db1",
+      "name": "ARBEITNOW - Split Registros"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const vaga = item.json;\n\n  const getCampo = (...valores) => {\n    for (const valor of valores) {\n      if (valor !== undefined && valor !== null && String(valor).trim() !== \"\") {\n        return String(valor).trim();\n      }\n    }\n    return \"\";\n  };\n\n  const titulo = getCampo(vaga.title, vaga.titulo, vaga.Título, vaga.cargo);\n  const empresa = getCampo(vaga.company_name, vaga.company, vaga.empresa);\n  const descricao = getCampo(vaga.description, vaga.descricao, vaga.Descrição);\n  const link = getCampo(vaga.url, vaga.URL, vaga.link);\n  const cidade = getCampo(vaga.cidade, vaga.city, vaga.location);\n  const pais = getCampo(vaga.pais, vaga.country);\n  const modalidade = getCampo(vaga.modalidade, vaga.remote, vaga.remoto);\n  const fonte = getCampo(vaga.fonte, \"Arbeitnow\");\n\n  const camposObrigatorios = {\n    cargo: titulo,\n    empresa,\n    descricao,\n    link\n  };\n\n  const camposAnaliticos = {\n    cidade,\n    pais,\n    modalidade\n  };\n\n  const camposFaltantesObrigatorios = Object.entries(camposObrigatorios)\n    .filter(([_, valor]) => !valor)\n    .map(([campo]) => campo);\n\n  if (camposFaltantesObrigatorios.length > 0) {\n    return null;\n  }\n\n  let completude_dados = 0;\n\n  if (titulo) completude_dados += 20;\n  if (empresa) completude_dados += 20;\n  if (descricao) completude_dados += 20;\n  if (link) completude_dados += 20;\n  if (cidade) completude_dados += 5;\n  if (pais) completude_dados += 5;\n  if (modalidade) completude_dados += 10;\n\n  const camposFaltantesAnaliticos = Object.entries(camposAnaliticos)\n    .filter(([_, valor]) => !valor)\n    .map(([campo]) => campo);\n\n  const campos_faltantes = [\n    ...camposFaltantesObrigatorios,\n    ...camposFaltantesAnaliticos\n  ].join(\", \");\n\n  let qualidade_dados = \"\";\n\n  if (completude_dados >= 90) {\n    qualidade_dados = \"Alta\";\n  } else if (completude_dados >= 70) {\n    qualidade_dados = \"Média\";\n  } else {\n    qualidade_dados = \"Baixa\";\n  }\n\n  const campos_obrigatorios_ok = camposFaltantesObrigatorios.length === 0 ? \"Sim\" : \"Não\";\n\n  const texto = [\n    titulo,\n    empresa,\n    descricao,\n    cidade,\n    pais,\n    modalidade,\n    fonte\n  ]\n    .filter(Boolean)\n    .join(\" \")\n    .toLowerCase();\n\n  // ===============================\n  // ENRIQUECIMENTO ANALÍTICO V1\n  // ===============================\n\n  const experienciaRegex = [\n    /(\\d+)\\+?\\s*(anos|ano)\\s+de\\s+experi[eê]ncia/g,\n    /mínimo\\s+de\\s+(\\d+)\\s*(anos|ano)/g,\n    /minimo\\s+de\\s+(\\d+)\\s*(anos|ano)/g,\n    /minimum\\s+of\\s+(\\d+)\\s*(years|year)/g,\n    /at\\s+least\\s+(\\d+)\\s*(years|year)/g,\n    /(\\d+)\\+?\\s*(years|year)\\s+of\\s+experience/g,\n    /experience\\s+of\\s+(\\d+)\\+?\\s*(years|year)/g\n  ];\n\n  let anosExperiencia = [];\n\n  for (const regex of experienciaRegex) {\n    const matches = [...texto.matchAll(regex)];\n    matches.forEach(match => {\n      anosExperiencia.push(Number(match[1]));\n    });\n  }\n\n  const exige_experiencia = anosExperiencia.length > 0 ? \"Sim\" : \"Não\";\n  const tempo_minimo_experiencia = anosExperiencia.length > 0 ? Math.min(...anosExperiencia) : \"\";\n\n  let nivel_experiencia = \"\";\n\n  if (tempo_minimo_experiencia === \"\") {\n    nivel_experiencia = \"Não informado\";\n  } else if (tempo_minimo_experiencia <= 1) {\n    nivel_experiencia = \"Entrada\";\n  } else if (tempo_minimo_experiencia <= 3) {\n    nivel_experiencia = \"Pleno\";\n  } else if (tempo_minimo_experiencia <= 5) {\n    nivel_experiencia = \"Sênior\";\n  } else {\n    nivel_experiencia = \"Especialista\";\n  }\n\n  const niveisConhecimento = {\n    \"Básico\": [\"básico\", \"basico\", \"basic\"],\n    \"Intermediário\": [\"intermediário\", \"intermediario\", \"intermediate\"],\n    \"Avançado\": [\"avançado\", \"avancado\", \"advanced\", \"strong knowledge\", \"hands-on experience\"],\n    \"Especialista\": [\"expert\", \"specialist\", \"especialista\"]\n  };\n\n  let niveisDetectados = [];\n\n  for (const [nivel, termos] of Object.entries(niveisConhecimento)) {\n    if (termos.some(termo => texto.includes(termo))) {\n      niveisDetectados.push(nivel);\n    }\n  }\n\n  const nivel_conhecimento_detectado = [...new Set(niveisDetectados)].join(\", \");\n\n  const idiomas = {\n    \"Inglês\": [\"inglês\", \"ingles\", \"english\"],\n    \"Espanhol\": [\"espanhol\", \"spanish\"],\n    \"Português\": [\"português\", \"portugues\", \"portuguese\"],\n    \"Alemão\": [\"alemão\", \"alemao\", \"german\"],\n    \"Francês\": [\"francês\", \"frances\", \"french\"]\n  };\n\n  let idiomasDetectados = [];\n\n  for (const [idioma, termos] of Object.entries(idiomas)) {\n    if (termos.some(termo => texto.includes(termo))) {\n      idiomasDetectados.push(idioma);\n    }\n  }\n\n  const idiomas_exigidos = [...new Set(idiomasDetectados)].join(\", \");\n\n  const niveisIdioma = {\n    \"Básico\": [\"basic english\", \"inglês básico\", \"ingles basico\", \"basic spanish\", \"espanhol básico\", \"spanish basic\"],\n    \"Intermediário\": [\"intermediate english\", \"inglês intermediário\", \"ingles intermediario\", \"intermediate spanish\", \"espanhol intermediário\", \"spanish intermediate\"],\n    \"Avançado\": [\"advanced english\", \"inglês avançado\", \"ingles avancado\", \"advanced spanish\", \"espanhol avançado\", \"spanish advanced\"],\n    \"Fluente\": [\"fluent english\", \"inglês fluente\", \"ingles fluente\", \"fluent spanish\", \"espanhol fluente\", \"spanish fluent\"]\n  };\n\n  let niveisIdiomaDetectados = [];\n\n  for (const [nivel, termos] of Object.entries(niveisIdioma)) {\n    if (termos.some(termo => texto.includes(termo))) {\n      niveisIdiomaDetectados.push(nivel);\n    }\n  }\n\n  const nivel_idioma = [...new Set(niveisIdiomaDetectados)].join(\", \");\n\n  // ===============================\n  // SCORE V2.0\n  // ===============================\n\n  let score = 0;\n  let categorias_detectadas = [];\n  let tecnologias_detectadas = [];\n  let termos_detectados = [];\n  let penalizacoes_detectadas = [];\n\n  const matriz = {\n    cargo: {\n      peso: 40,\n      termos: [\n        \"analista de dados\",\n        \"analista de dados pleno\",\n        \"analista de dados senior\",\n        \"analista de dados sênior\",\n        \"data analyst\",\n        \"bi analyst\",\n        \"analista de bi\",\n        \"analista business intelligence\",\n        \"analista de business intelligence\",\n        \"business intelligence analyst\",\n        \"analytics analyst\",\n        \"business analyst\",\n        \"analista de negócios\",\n        \"analista de negocios\",\n        \"mis analyst\",\n        \"reporting analyst\",\n        \"performance analyst\",\n        \"data engineer\",\n        \"data engineering\",\n        \"engenheiro de dados\",\n        \"engenharia de dados\",\n        \"analytics engineer\",\n        \"data warehouse engineer\"\n      ]\n    },\n    ferramentas: {\n      peso: 30,\n      termos: [\n        \"sql\",\n        \"python\",\n        \"power bi\",\n        \"tableau\",\n        \"looker\",\n        \"looker studio\",\n        \"excel\",\n        \"excel avançado\",\n        \"excel avancado\",\n        \"dax\",\n        \"power query\",\n        \"ssis\",\n        \"ssrs\",\n        \"airflow\",\n        \"apache airflow\",\n        \"spark\",\n        \"apache spark\",\n        \"pyspark\",\n        \"etl\",\n        \"elt\",\n        \"data warehouse\",\n        \"dw\",\n        \"git\",\n        \"github\"\n      ]\n    },\n    cloud: {\n      peso: 15,\n      termos: [\n        \"aws\",\n        \"azure\",\n        \"google cloud\",\n        \"gcp\",\n        \"snowflake\",\n        \"bigquery\",\n        \"databricks\",\n        \"microsoft fabric\",\n        \"fabric\",\n        \"synapse\",\n        \"data lake\",\n        \"azure data factory\",\n        \"adf\",\n        \"data factory\",\n        \"delta lake\",\n        \"lakehouse\",\n        \"data mesh\",\n        \"data fabric\",\n        \"data architecture\",\n        \"arquitetura de dados\"\n      ]\n    },\n    negocio: {\n      peso: 10,\n      termos: [\n        \"kpi\",\n        \"kpis\",\n        \"indicadores\",\n        \"métricas\",\n        \"metricas\",\n        \"business metrics\",\n        \"métricas de negócio\",\n        \"metricas de negocio\",\n        \"mapeamento de processos\",\n        \"process mapping\",\n        \"governança\",\n        \"governance\",\n        \"levantamento de requisitos\",\n        \"requirements gathering\",\n        \"modelagem de dados\",\n        \"data modeling\",\n        \"data analytics\",\n        \"estatística\",\n        \"statistics\",\n        \"métricas de produto\",\n        \"product metrics\",\n        \"churn\",\n        \"ltv\",\n        \"cohort analysis\",\n        \"data quality\",\n        \"pipeline de dados\",\n        \"data pipeline\"\n      ]\n    },\n    metodologia: {\n      peso: 5,\n      termos: [\n        \"scrum\",\n        \"agile\",\n        \"ágil\",\n        \"agil\",\n        \"kanban\",\n        \"product owner\",\n        \"product management\"\n      ]\n    }\n  };\n\n  const penalizacoes = [\n    \"vendas\",\n    \"sales\",\n    \"telemarketing\",\n    \"call center\",\n    \"atendimento\",\n    \"customer service\",\n    \"designer\",\n    \"design\",\n    \"marketing\",\n    \"social media\",\n    \"estágio\",\n    \"estagio\",\n    \"internship\"\n  ];\n\n  for (const categoria in matriz) {\n    const { peso, termos } = matriz[categoria];\n\n    const encontrados = termos.filter(termo => texto.includes(termo));\n\n    if (encontrados.length > 0) {\n      categorias_detectadas.push(categoria);\n      termos_detectados.push(...encontrados);\n\n      if (categoria === \"ferramentas\" || categoria === \"cloud\") {\n        tecnologias_detectadas.push(...encontrados);\n      }\n\nconst pontosCategoria = Math.min(\n  peso,\n  Math.round((encontrados.length / termos.length) * peso * 4)\n);\n\n      score += pontosCategoria;\n    }\n  }\n\n  const penalizados = penalizacoes.filter(termo => texto.includes(termo));\n\n if (penalizados.length > 0) {\n  penalizacoes_detectadas.push(...penalizados);\n  score -= penalizados.length * 3;\n}\n\n  score = Math.max(0, Math.min(100, score));\n\n  let faixa_score = \"\";\n\n  if (score <= 20) {\n    faixa_score = \"Pouco aderente\";\n  } else if (score <= 40) {\n    faixa_score = \"Baixa aderência\";\n  } else if (score <= 60) {\n    faixa_score = \"Média aderência\";\n  } else if (score <= 80) {\n    faixa_score = \"Boa aderência\";\n  } else {\n    faixa_score = \"Excelente aderência\";\n  }\n\n  return {\n  json: {\n    ...vaga,\n\n    cargo: titulo,\n    empresa,\n    descricao,\n    link,\n    cidade,\n    pais,\n    modalidade,\n    fonte,\n\n    completude_dados,\n    qualidade_dados,\n    campos_obrigatorios_ok,\n    campos_faltantes,\n\n    exige_experiencia,\n    tempo_minimo_experiencia,\n    nivel_experiencia,\n    nivel_conhecimento_detectado,\n    idiomas_exigidos,\n    nivel_idioma,\n\n    score,\n    faixa_score,\n    categorias_detectadas: [...new Set(categorias_detectadas)].join(\", \"),\n    tecnologias_detectadas: [...new Set(tecnologias_detectadas)].join(\", \"),\n    termos_detectados: [...new Set(termos_detectados)].join(\", \"),\n    penalizacoes_detectadas: [...new Set(penalizacoes_detectadas)].join(\", \"),\n    modelo_score: \"Score v2.1 + Enriquecimento Analítico v1\"\n  }\n};\n}).filter(item => item !== null);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -336
+      ],
+      "id": "c4496059-5374-4436-bdb1-a4a9f0fe9f8e",
+      "name": "SIC - Score v2.1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a46a4da3-faa7-4f87-a5fa-b8f10017c7e2",
+              "leftValue": "={{$json.score}}",
+              "rightValue": 10,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1216,
+        -336
+      ],
+      "id": "001f40fd-4297-4dd6-91d8-23a4dc3e538c",
+      "name": "SIC - Validação Score",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        512,
+        -80
+      ],
+      "id": "ed63bc00-78f9-4d0b-83b5-d8802c27c429",
+      "name": "GUPY - Split Registros"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1jORLezXJkW155wsUUMcoW1Q1kFhsH1uZxmILvSJZTjs",
+          "mode": "list",
+          "cachedResultName": "Base_Radar_De_Vagas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jORLezXJkW155wsUUMcoW1Q1kFhsH1uZxmILvSJZTjs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1357957525,
+          "mode": "list",
+          "cachedResultName": "vagas_brutas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1jORLezXJkW155wsUUMcoW1Q1kFhsH1uZxmILvSJZTjs/edit#gid=1357957525"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "empresa": "={{ $json.empresa }}",
+            "cargo": "={{ $json.cargo }}",
+            "salario": "={{$json.salario}}",
+            "link": "={{$json.link}}",
+            "fonte": "={{$json.fonte}}",
+            "data_coleta": "={{ $now.toFormat('dd/MM/yyyy HH:mm:ss') }}",
+            "cidade": "={{$json.cidade}}",
+            "pais": "={{$json.pais}}",
+            "modalidade": "={{$json.modalidade}}",
+            "score": "={{$json.score}}",
+            "tipo_mercado": "={{$json.tipo_mercado}}",
+            "faixa_score": "={{$json.faixa_score}}",
+            "categorias_detectadas": "={{$json.categorias_detectadas}}",
+            "tecnologias_detectadas": "={{$json.tecnologias_detectadas}}",
+            "termos_detectados": "={{$json.termos_detectados}}",
+            "penalizacoes_detectadas": "={{$json.penalizacoes_detectadas}}",
+            "modelo_score": "={{$json.modelo_score}}",
+            "completude_dados": "={{$json.completude_dados}}",
+            "qualidade_dados": "={{$json.qualidade_dados}}",
+            "campos_obrigatorios_ok": "={{$json.campos_obrigatorios_ok}}",
+            "campos_faltantes": "={{$json.campos_faltantes}}",
+            "exige_experiencia": "={{$json.exige_experiencia}}",
+            "tempo_minimo_experiencia": "={{$json.tempo_minimo_experiencia}}",
+            "nivel_experiencia": "={{$json.nivel_experiencia}}",
+            "nivel_conhecimento_detectado": "={{$json.nivel_conhecimento_detectado}}",
+            "idiomas_exigidos": "={{$json.idiomas_exigidos}}",
+            "nivel_idioma": "={{$json.nivel_idioma}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "empresa",
+              "displayName": "empresa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "cargo",
+              "displayName": "cargo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "cidade",
+              "displayName": "cidade",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "pais",
+              "displayName": "pais",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "modalidade",
+              "displayName": "modalidade",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "salario",
+              "displayName": "salario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fonte",
+              "displayName": "fonte",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "faixa_score",
+              "displayName": "faixa_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "categorias_detectadas",
+              "displayName": "categorias_detectadas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tecnologias_detectadas",
+              "displayName": "tecnologias_detectadas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "termos_detectados",
+              "displayName": "termos_detectados",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "penalizacoes_detectadas",
+              "displayName": "penalizacoes_detectadas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "modelo_score",
+              "displayName": "modelo_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tipo_mercado",
+              "displayName": "tipo_mercado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "data_coleta",
+              "displayName": "data_coleta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "completude_dados",
+              "displayName": "completude_dados",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "qualidade_dados",
+              "displayName": "qualidade_dados",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "campos_obrigatorios_ok",
+              "displayName": "campos_obrigatorios_ok",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "campos_faltantes",
+              "displayName": "campos_faltantes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "exige_experiencia",
+              "displayName": "exige_experiencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tempo_minimo_experiencia",
+              "displayName": "tempo_minimo_experiencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "nivel_experiencia",
+              "displayName": "nivel_experiencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "nivel_conhecimento_detectado",
+              "displayName": "nivel_conhecimento_detectado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "idiomas_exigidos",
+              "displayName": "idiomas_exigidos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "nivel_idioma",
+              "displayName": "nivel_idioma",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1440,
+        -336
+      ],
+      "id": "6b0158c9-c409-4830-95f5-e81c70ca16bf",
+      "name": "SIC - Persistência Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "RskSep1mbHUdtqaL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const html = item.json.detail || \"\";\n\n  const clean = (value) =>\n    (value || \"\")\n      .replace(/<[^>]*>/g, \" \")\n      .replace(/&amp;/g, \"&\")\n      .replace(/&#x([0-9A-F]+);/gi, (_, hex) =>\n        String.fromCharCode(parseInt(hex, 16))\n      )\n      .replace(/\\s+/g, \" \")\n      .trim();\n\n  const cargo = clean(\n    (html.match(/js_vacancyHeaderTitle\">([\\s\\S]*?)<\\/h2>/i) || [])[1]\n  );\n\n  const empresa = clean(\n    (html.match(/title=\"([^\"]*?) Trabalhe Conosco\"/i) || [])[1]\n  );\n\n  const cidade = clean(\n    (html.match(/([A-Za-zÀ-ÿ\\s]+ - [A-Z]{2})<span/i) || [])[1]\n  );\n\n  const salario = clean(\n    (html.match(/(Salário a combinar|A combinar|R\\$[\\s\\S]{1,40})/i) || [])[1]\n  );\n\n  const modalidade = clean(\n    (html.match(/(Presencial|Remoto|Híbrido|Hibrido)/i) || [])[1]\n  );\n\n  let descricao = clean(html);\n\n  const inicioDescricao = descricao.search(\n    /Buscamos um profissional|ATRIBUIÇÕES|ATRIBUICOES|REQUISITOS/i\n  );\n\n  if (inicioDescricao >= 0) {\n    descricao = descricao.substring(inicioDescricao).trim();\n  }\n\n  return {\n    json: {\n      empresa,\n      cargo,\n      descricao,\n      cidade,\n      pais: \"Brasil\",\n      modalidade,\n      salario,\n      link: item.json.link_publico || item.json.detalhe_url || \"\",\n      fonte: \"InfoJobs\",\n      data_coleta: new Date().toLocaleString(\"pt-BR\")\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -352
+      ],
+      "id": "f0dd1799-c2c3-43d8-80fa-284c5190d1f4",
+      "name": "Normalizar INFOJOBS"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        512,
+        -560
+      ],
+      "id": "4b68c9cd-d519-4cd2-92f6-34174d9f5bc9",
+      "name": "RECRUTEI - Split Registros"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n\n  const vaga = item.json;\n\n  return {\n    json: {\n\n      empresa: vaga.careerPageName || \"\",\n\n      cargo: vaga.name || \"\",\n\n      descricao: vaga.description || \"\",\n\n      cidade: vaga.city || \"\",\n\n      pais: vaga.country || \"\",\n\n      modalidade: vaga.workplaceType || \"\",\n\n      salario: \"\",\n\n      link: vaga.jobUrl || \"\",\n\n      fonte: \"Gupy\",\n\n      data_coleta: new Date().toLocaleString(\"pt-BR\")\n\n    }\n  };\n\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -560
+      ],
+      "id": "9f434ac8-3beb-4b5a-80ff-e023a54686fd",
+      "name": "Normalizar RECRUTEI"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const vaga = typeof item.json.data === \"string\"\n    ? JSON.parse(item.json.data)\n    : item.json.data;\n\n  return {\n    json: {\n      empresa: vaga.c?.cn || \"\",\n      cargo: vaga.o?.t || \"\",\n      descricao: vaga.o?.ld || \"\",\n      cidade: vaga.o?.cins?.[0] || \"\",\n      pais: vaga.o?.cntrs?.[0] || \"Brasil\",\n      modalidade: vaga.o?.lset || \"\",\n      salario: vaga.o?.sn || \"\",\n      link: vaga.o?.ur ? \"https://www.catho.com.br\" + vaga.o.ur : \"\",\n      fonte: \"Catho\",\n      data_coleta: new Date().toLocaleString(\"pt-BR\")\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -736
+      ],
+      "id": "b4a05190-20dd-41a1-a0b1-36784d7e529d",
+      "name": "Normalizar CATHO"
+    },
+    {
+      "parameters": {
+        "url": "https://oferta.catho.com.br/offer/36815532/d/j?ipo=42&iapo=1",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "jobName",
+              "value": "data"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "offset",
+              "value": "0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        304,
+        -736
+      ],
+      "id": "0798cdd1-28d2-4e86-89c0-85c1a3ac4100",
+      "name": "Coleta CATHO"
+    },
+    {
+      "parameters": {
+        "url": "https://recrutei.com.br",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "jobName",
+              "value": "data"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "offset",
+              "value": "0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        304,
+        -560
+      ],
+      "id": "cbe201e1-b217-4e2f-9e7c-9b9e3038a8b7",
+      "name": "Coleta RECRUTEI"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        512,
+        -736
+      ],
+      "id": "cb39c54f-be73-4133-81a3-83a9aac68233",
+      "name": "CATHO - Split Registros"
+    },
+    {
+      "parameters": {
+        "url": "https://www.infojobs.com.br/mf-publicarea/vacancylist/getdetail",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "={{$json.id}}"
+            },
+            {
+              "name": "keyword",
+              "value": "analista de dados"
+            },
+            {
+              "name": "preference",
+              "value": "ea92c117-37f6-4a0e-9b72-e01c1f858448"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Referer",
+              "value": "https://www.infojobs.com.br/empregos.aspx?palabra=analista+de+dados&iv=11668876"
+            },
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        304,
+        -224
+      ],
+      "id": "e8505664-3013-496b-b755-da99fdde1427",
+      "name": "Coleta INFOJOBS - Detalhe"
+    },
+    {
+      "parameters": {
+        "url": "https://www.infojobs.com.br/vagas-de-analista-banco-dados-em-sao-paulo%2C-sp.aspx",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"
+            },
+            {
+              "name": "Referer",
+              "value": "https://www.infojobs.com.br/"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -144,
+        -352
+      ],
+      "id": "8fa5e9f7-977a-4a78-8c01-a904e30ad500",
+      "name": "Coleta INFOJOBS - Lista"
+    },
+    {
+      "parameters": {
+        "jsCode": "const html =\n  $input.first().json.data ||\n  $input.first().json.body ||\n  $input.first().json.html ||\n  \"\";\n\nconst regex = /data-id=\"(\\d+)\"[\\s\\S]*?data-href=\"([^\"]+)\"/g;\n\nconst vistos = new Set();\nconst vagas = [];\nlet match;\n\nwhile ((match = regex.exec(html)) !== null) {\n  const id = match[1];\n  const href = match[2];\n\n  if (!id || !href || vistos.has(id)) continue;\n\n  vistos.add(id);\n\n  const link_publico = href.startsWith(\"http\")\n    ? href\n    : `https://www.infojobs.com.br${href}`;\n\n  vagas.push({\n    json: {\n      id,\n      detalhe_url: `https://www.infojobs.com.br/mf-publicarea/vacancylist/getdetail?id=${id}`,\n      link_publico\n    }\n  });\n}\n\nreturn vagas;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        -352
+      ],
+      "id": "5e134ba8-026b-4c3c-a464-41392b6852f8",
+      "name": "INFOJOBS - Extrair IDs1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        512,
+        -352
+      ],
+      "id": "7ce156cf-8708-4594-bb67-4934e5f6f4e5",
+      "name": "Merge"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Coleta Gupy": {
+      "main": [
+        [
+          {
+            "node": "GUPY - Split Registros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Gupy": {
+      "main": [
+        [
+          {
+            "node": "SIC - Score v2.1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SIC - Trigger Manual": {
+      "main": [
+        [
+          {
+            "node": "Coleta INFOJOBS - Lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ARBEITNOW - Coleta API": {
+      "main": [
+        [
+          {
+            "node": "ARBEITNOW - Split Registros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ARBEITNOW - Split Registros": {
+      "main": [
+        [
+          {
+            "node": "SIC - Score v2.1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SIC - Score v2.1": {
+      "main": [
+        [
+          {
+            "node": "SIC - Validação Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SIC - Validação Score": {
+      "main": [
+        [
+          {
+            "node": "SIC - Persistência Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GUPY - Split Registros": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Gupy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar INFOJOBS": {
+      "main": [
+        [
+          {
+            "node": "SIC - Score v2.1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RECRUTEI - Split Registros": {
+      "main": [
+        [
+          {
+            "node": "Normalizar RECRUTEI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar RECRUTEI": {
+      "main": [
+        [
+          {
+            "node": "SIC - Score v2.1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar CATHO": {
+      "main": [
+        [
+          {
+            "node": "SIC - Score v2.1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Coleta CATHO": {
+      "main": [
+        [
+          {
+            "node": "CATHO - Split Registros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Coleta RECRUTEI": {
+      "main": [
+        [
+          {
+            "node": "RECRUTEI - Split Registros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CATHO - Split Registros": {
+      "main": [
+        [
+          {
+            "node": "Normalizar CATHO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Coleta INFOJOBS - Detalhe": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Coleta INFOJOBS - Lista": {
+      "main": [
+        [
+          {
+            "node": "INFOJOBS - Extrair IDs1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INFOJOBS - Extrair IDs1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Coleta INFOJOBS - Detalhe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Normalizar INFOJOBS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "b5d5969d-e89e-461f-90d4-6f7ff9006472",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0e9af8e269e7ff6e9518275195765765092c4a8c9111bc661c5f4e78de6d4b62"
+  },
+  "id": "3rUSby2saGrXC2hP",
+  "tags": []
+}
