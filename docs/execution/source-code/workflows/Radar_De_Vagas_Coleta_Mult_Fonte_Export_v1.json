@@ -769,6 +769,26 @@
             "node": "Coleta INFOJOBS - Lista",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Coleta RECRUTEI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Coleta CATHO",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Coleta Gupy",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ARBEITNOW - Coleta API",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -960,7 +980,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "b5d5969d-e89e-461f-90d4-6f7ff9006472",
+  "versionId": "c855a02b-ff7e-45f0-9aa2-9509523dc401",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "0e9af8e269e7ff6e9518275195765765092c4a8c9111bc661c5f4e78de6d4b62"
