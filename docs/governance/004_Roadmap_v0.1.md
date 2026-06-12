@@ -325,3 +325,39 @@ Roadmap consolidado como referência oficial de planejamento do SIC.
 ## Data de Registro
 
 12/06/2026
+
+---
+
+# Atualização do Roadmap
+
+## Objetivo
+
+Atualizar o Roadmap para refletir a evolução real do SIC e consolidar o planejamento futuro do projeto.
+
+## Alterações Realizadas
+
+* Revisão completa do Roadmap Executivo.
+* Criação da visão por fases do projeto.
+* Consolidação da linha do tempo do SIC.
+* Inclusão dos responsáveis (Owner).
+* Atualização dos status das entregas.
+* Criação do Roadmap Detalhado.
+* Inclusão das sprints SP-001 até SP-023.
+* Inclusão dos marcos (Milestones).
+* Alinhamento com o Project Charter atualizado.
+* Consolidação das fases Fundação, Multi-Fonte, Data Warehouse, Data Analytics, Governança e Evolução.
+
+## Resultado
+
+Roadmap consolidado como documento oficial de planejamento, acompanhamento e evolução do Sistema de Inteligência de Carreira.
+
+## Status
+
+**CONCLUÍDO**
+
+## Data de Registro
+
+12/06/2026
+
+---
+
