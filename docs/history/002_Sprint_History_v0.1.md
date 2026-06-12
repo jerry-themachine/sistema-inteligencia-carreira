@@ -22,6 +22,206 @@ Consolidar o histórico das sprints executadas no projeto SIC, registrando objet
 
 ---
 
+# SP-001
+
+## Objetivo
+
+Definir a visão inicial do Sistema de Inteligência de Carreira.
+
+## Entregas
+
+* Concepção do SIC
+* Definição dos objetivos estratégicos
+* Definição da proposta de valor
+
+## Resultado
+
+Projeto concebido e aprovado para evolução.
+
+## Status
+
+Concluída
+
+---
+
+# SP-002
+
+## Objetivo
+
+Definir a arquitetura inicial da solução.
+
+## Entregas
+
+* Arquitetura conceitual
+* Fluxo macro do produto
+* Tecnologias iniciais
+
+## Resultado
+
+Arquitetura base aprovada.
+
+## Status
+
+Concluída
+
+---
+
+# SP-003
+
+## Objetivo
+
+Preparar a infraestrutura do ambiente.
+
+## Entregas
+
+* WSL
+* Ubuntu
+* Node.js
+* npm
+
+## Resultado
+
+Ambiente preparado para desenvolvimento.
+
+## Status
+
+Concluída
+
+---
+
+# SP-004
+
+## Objetivo
+
+Implantar a plataforma n8n.
+
+## Entregas
+
+* Instalação do n8n
+* Primeiros testes
+
+## Resultado
+
+n8n operacional.
+
+## Status
+
+Concluída
+
+---
+
+# SP-005
+
+## Objetivo
+
+Construir a primeira prova de conceito.
+
+## Entregas
+
+* HTTP Request
+* JavaScript
+* IF
+* Primeiros fluxos automatizados
+
+## Resultado
+
+Primeiro fluxo funcional executado.
+
+## Status
+
+Concluída
+
+---
+
+# SP-006
+
+## Objetivo
+
+Implementar persistência em Google Sheets.
+
+## Entregas
+
+* Google Cloud
+* OAuth
+* Google Sheets API
+* Persistência validada
+
+## Resultado
+
+Primeira camada de armazenamento homologada.
+
+## Status
+
+Concluída
+
+---
+
+# SP-007
+
+## Objetivo
+
+Planejar substituição da API de testes por fonte real.
+
+## Entregas
+
+* Discovery de fontes
+* Estratégia de integração
+* Avaliação técnica das plataformas
+
+## Resultado
+
+Plano de integração aprovado.
+
+## Status
+
+Concluída
+
+---
+
+# SP-008
+
+## Objetivo
+
+Integrar a primeira fonte real de vagas.
+
+## Entregas
+
+* Integração Arbeitnow
+* Persistência automática
+* Primeiros testes de coleta
+
+## Resultado
+
+Primeira coleta real homologada.
+
+## Status
+
+Concluída
+
+---
+
+# SP-009
+
+## Objetivo
+
+Estruturar a base operacional do SIC.
+
+## Entregas
+
+* vagas_brutas
+* vagas_aprovadas
+* logs
+
+## Resultado
+
+Estrutura operacional criada.
+
+## Status
+
+Concluída
+
+---
+
 # SP-010
 
 ## Objetivo
@@ -153,30 +353,118 @@ Homologations
 
 ---
 
-# Próximas Sprints
+# SP-014
 
-## SP-014
+## Objetivo
 
-* Recrutei
-* Catho
-* Deduplicação
+Expandir a arquitetura multi-fonte e estabilizar a coleta.
 
-## SP-015
+## Entregas
 
-* Dashboard Power BI
+* Homologação Recrutei
+* Homologação Catho
+* Correção InfoJobs
+* Merge Node
+* Backup dos workflows
+* Backup dos códigos
+* Padronização dos nós
 
-## SP-016
+## Resultado
 
-* Alertas Inteligentes
+Arquitetura multi-fonte estabilizada.
+
+## Status
+
+Concluída
 
 ---
 
-# Status
+# SP-015
 
-Documento: Sprint History
+## Objetivo
 
-Versão: 0.1
+Migrar o SIC para SQL Server e arquitetura Data Warehouse.
 
-Projeto: SIC
+## Entregas
 
-Status: Publicado
+* Banco SIC_DW
+* Schema RAW
+* Schema STG
+* Schema SILVER
+* Schema GOLD
+* Schema AUDIT
+* Procedures ETL
+* Integração n8n → SQL Server
+
+## Resultado
+
+Data Warehouse implantado e operacional.
+
+## Status
+
+Concluída
+
+---
+
+# SP-016
+
+## Objetivo
+
+Implementar a camada analítica e disponibilizar dados para consumo em Power BI.
+
+## Entregas
+
+* Camada SILVER homologada
+* Camada GOLD homologada
+* Procedures analíticas
+* Auditoria operacional
+* Execute Once
+* Integração Power BI
+* Dashboard homologado
+* Correção de múltiplas execuções
+
+## Resultado
+
+Camada analítica operacional e Power BI integrado ao SIC.
+
+## Status
+
+Concluída
+
+---
+
+# SP-017
+
+## Objetivo
+
+Consolidar a documentação e a governança do projeto.
+
+## Entregas
+
+* Atualização do Project Charter
+* Atualização do Roadmap Executivo
+* Atualização do Roadmap Detalhado
+* Revisão do Backlog
+* Revisão do RAID Log
+* Revisão do Sprint Planning
+* Revisão do Sprint Review
+* Revisão do Sprint Retrospective
+* Revisão do Sprint Dossier
+* Consolidação da baseline documental
+
+## Resultado
+
+Governança documental consolidada e alinhada ao estado atual do SIC.
+
+## Status
+
+Concluída
+
+---
+
+# Métricas de Evolução
+
+## Sprints Concluídas
+
+```text
+17
