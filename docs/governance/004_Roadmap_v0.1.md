@@ -26,6 +26,8 @@ Definir a sequência evolutiva de implementação do Sistema de Inteligência de
 
 ---
 
+
+
 # Status Atual
 
 ## Infraestrutura
@@ -298,3 +300,28 @@ Sistema operacional para apoio à recolocação profissional.
 ## Data de Registro
 
 31/05/2026
+
+# Atualização - Roadmap Executivo e Detalhado
+
+## Resumo
+
+Reestruturação completa do Roadmap do SIC.
+
+## Alterações Realizadas
+
+* Criação da visão executiva por fases.
+* Inclusão da linha do tempo Mai/26 a Ago/26.
+* Organização por estágios do projeto.
+* Inclusão dos responsáveis (Owner).
+* Atualização dos status.
+* Expansão da aba Roadmap Detalhado.
+* Inclusão das sprints SP-001 até SP-023.
+* Inclusão de marcos, objetivos e entregas.
+
+## Resultado
+
+Roadmap consolidado como referência oficial de planejamento do SIC.
+
+## Data de Registro
+
+12/06/2026
